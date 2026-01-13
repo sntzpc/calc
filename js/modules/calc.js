@@ -102,14 +102,31 @@ export function createCalcModule({state, setExpr, setResult, setHint, evaluate, 
   }
 
   function handleKeyboard(e){
+    // ✅ Jika user sedang mengetik di input (agro/convert), jangan ganggu.
+    const t = e.target;
+    const tag = (t?.tagName || '').toLowerCase();
+    const isEditable =
+      tag === 'input' ||
+      tag === 'textarea' ||
+      tag === 'select' ||
+      t?.isContentEditable;
+  
+    // Biarkan Backspace/Delete/Enter normal di field input
+    if (isEditable) return;
+  
+    // Jangan mengganggu shortcut browser (Ctrl/Cmd + sesuatu)
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+  
     const k = e.key;
+  
     if (k === 'Enter') { e.preventDefault(); equals(); return; }
     if (k === 'Backspace') { e.preventDefault(); backspace(); return; }
     if (k === 'Escape') { e.preventDefault(); clearAll(); return; }
+  
     const allowed = '0123456789.+-*/()^';
     if (allowed.includes(k)) { insertText(k); return; }
     if (k === 'x' || k === 'X') { insertText('*'); return; }
-  }
+  }  
 
   return { preview, insertText, clearAll, backspace, equals, handleKeyButton, handleKeyboard };
 }

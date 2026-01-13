@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kalkulator_pwa_v3_modular';
+const CACHE_NAME = 'kalkulator_pwa_v4_modular';
 const ASSETS = [
   './',
   './index.html',
