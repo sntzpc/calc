@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1b1f3a" />
+  <title>Kalkulator Offline (Standard + Scientific + Agronomi)</title>
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Ctext y='54' x='6' font-size='56'%3E%F0%9F%A7%AE%3C/text%3E%3C/svg%3E" />
+
+  <!-- SheetJS untuk export XLSX (dicache setelah akses pertama online) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">🧮</div>
+        <div class="title">
+          <div class="name">Kalkulator Offline</div>
+          <div class="sub">Standard • Scientific • Agronomi • History</div>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <button id="btn-mode" class="pill" type="button" title="Ganti Mode">Scientific</button>
+        <button id="btn-install" class="pill ghost hidden" type="button" title="Install ke HP">Install</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="calc">
+        <div class="display">
+          <div id="expr" class="expr" aria-label="Expression">0</div>
+          <div class="row2">
+            <div id="hint" class="hint">Siap</div>
+            <div id="result" class="result" aria-label="Result">0</div>
+          </div>
+        </div>
+
+        <!-- Scientific pad (toggle) -->
+        <div id="sci-pad" class="pad sci hidden">
+          <button class="key fn" data-fn="degRad">DEG</button>
+          <button class="key fn" data-insert="pi">π</button>
+          <button class="key fn" data-insert="e">e</button>
+          <button class="key fn" data-insert="(">(</button>
+          <button class="key fn" data-insert=")">)</button>
+
+          <button class="key fn" data-insert="sin(">sin</button>
+          <button class="key fn" data-insert="cos(">cos</button>
+          <button class="key fn" data-insert="tan(">tan</button>
+          <button class="key fn" data-insert="ln(">ln</button>
+          <button class="key fn" data-insert="log(">log</button>
+
+          <button class="key fn" data-insert="asin(">asin</button>
+          <button class="key fn" data-insert="acos(">acos</button>
+          <button class="key fn" data-insert="atan(">atan</button>
+          <button class="key fn" data-insert="abs(">abs</button>
+          <button class="key fn" data-insert="exp(">exp</button>
+
+          <button class="key fn" data-insert="^">xʸ</button>
+          <button class="key fn" data-fn="square">x²</button>
+          <button class="key fn" data-insert="sqrt(">√x</button>
+          <button class="key fn" data-fn="fact">n!</button>
+          <button class="key fn" data-fn="percent">%</button>
+        </div>
+
+        <!-- Main pad -->
+        <div class="pad mainpad">
+          <button class="key util danger" data-fn="clear">AC</button>
+          <button class="key util" data-fn="back">⌫</button>
+          <button class="key util" data-fn="copy">Copy</button>
+          <button class="key op" data-insert="/">÷</button>
+
+          <button class="key num" data-insert="7">7</button>
+          <button class="key num" data-insert="8">8</button>
+          <button class="key num" data-insert="9">9</button>
+          <button class="key op" data-insert="*">×</button>
+
+          <button class="key num" data-insert="4">4</button>
+          <button class="key num" data-insert="5">5</button>
+          <button class="key num" data-insert="6">6</button>
+          <button class="key op" data-insert="-">−</button>
+
+          <button class="key num" data-insert="1">1</button>
+          <button class="key num" data-insert="2">2</button>
+          <button class="key num" data-insert="3">3</button>
+          <button class="key op" data-insert="+">+</button>
+
+          <button class="key util" data-fn="negate">±</button>
+          <button class="key num" data-insert="0">0</button>
+          <button class="key num" data-insert=".">.</button>
+          <button class="key eq" data-fn="equals">=</button>
+        </div>
+
+        <div class="bottom-actions">
+          <button id="btn-agro" class="action" type="button">🌱 Agronomi</button>
+          <button id="btn-convert" class="action" type="button">🔁 Konversi</button>
+          <button id="btn-history" class="action" type="button">📜 History</button>
+          <button id="btn-export" class="action" type="button">⬇️ Export</button>
+          <button id="btn-reset" class="action danger" type="button">🗑️ Reset</button>
+        </div>
+      </section>
+
+      <aside id="panel" class="panel hidden" aria-label="Panel">
+        <div class="panel-head">
+          <div class="panel-title" id="panel-title">History</div>
+          <button id="btn-close-panel" class="pill ghost" type="button">Tutup</button>
+        </div>
+
+        <div id="history-list" class="history"></div>
+
+        <!-- AGRONOMI PANEL -->
+        <div id="agro-box" class="agro hidden">
+          <div class="agro-tabs">
+            <button class="agtab active" data-agtab="kec">Kecambah</button>
+            <button class="agtab" data-agtab="akp">AKP & Taksasi</button>
+            <button class="agtab" data-agtab="tenaga">Tenaga Panen</button>
+            <button class="agtab" data-agtab="jarak">Jarak Tanam</button>
+            <button class="agtab" data-agtab="losses">Losses</button>
+          </div>
+
+          <!-- KECAMBAH -->
+          <section class="agpane" id="agpane-kec">
+            <div class="agcard">
+              <div class="agtitle">Kebutuhan Kecambah</div>
+              <div class="agdesc">
+                Rumus: <b>(SPH × (1 + Sisip%)) / (1 − Afkir%)</b><br/>
+                Default: Sisip 10% • Afkir 30% • Pembulatan ke 0/5 terdekat
+              </div>
+
+              <div class="aggrid">
+                <label class="agfield">
+                  <span>SPH (pokok/ha)</span>
+                  <input id="k_sph" type="number" inputmode="numeric" min="1" step="1" />
+                </label>
+                <label class="agfield">
+                  <span>Sisip (%)</span>
+                  <input id="k_sisip" type="number" inputmode="decimal" min="0" max="100" step="0.1" />
+                </label>
+                <label class="agfield">
+                  <span>Afkir (%)</span>
+                  <input id="k_afkir" type="number" inputmode="decimal" min="0" max="100" step="0.1" />
+                </label>
+              </div>
+
+              <div class="agout">
+                <div class="agout-row">
+                  <div>Hasil (mentah)</div>
+                  <div id="k_raw" class="agout-val">-</div>
+                </div>
+                <div class="agout-row">
+                  <div>Hasil pembulatan (0/5 terdekat)</div>
+                  <div id="k_round" class="agout-val big">-</div>
+                </div>
+              </div>
+
+              <div class="agactions">
+                <button class="pill" id="k_save_hist" type="button">Simpan ke History</button>
+                <button class="pill ghost" id="k_reset_defaults" type="button">Reset Default Kecambah</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- AKP -->
+          <section class="agpane hidden" id="agpane-akp">
+            <div class="agcard">
+              <div class="agtitle">Angka Kerapatan Panen (AKP)</div>
+              <div class="agdesc">
+                Rumus: <b>AKP = Janjang Siap Panen / Pokok Sensus × 100%</b><br/>
+                Notasi: % dan Perbandingan <b>1 : (Pokok/Janjang)</b>
+              </div>
+
+              <div class="aggrid">
+                <label class="agfield">
+                  <span>Jumlah Pokok Sensus</span>
+                  <input id="a_pokok" type="number" inputmode="numeric" min="1" step="1" />
+                </label>
+                <label class="agfield">
+                  <span>Janjang Siap Panen</span>
+                  <input id="a_janjang" type="number" inputmode="numeric" min="0" step="1" />
+                </label>
+              </div>
+
+              <div class="agout">
+                <div class="agout-row">
+                  <div>AKP (%)</div>
+                  <div id="a_pct" class="agout-val big">-</div>
+                </div>
+                <div class="agout-row">
+                  <div>AKP (Perbandingan)</div>
+                  <div id="a_ratio" class="agout-val">-</div>
+                </div>
+              </div>
+
+              <hr class="aghr"/>
+
+              <div class="agtitle">Taksasi Panen</div>
+              <div class="agdesc">
+                Rumus: <b>(AKP%/100) × SPH × Luas × BJR</b><br/>
+                Default: SPH 136 • Luas 100 ha • BJR 10 kg
+              </div>
+
+              <div class="aggrid">
+                <label class="agfield">
+                  <span>SPH</span>
+                  <input id="t_sph" type="number" inputmode="numeric" min="1" step="1" />
+                </label>
+                <label class="agfield">
+                  <span>Luas Areal Panen (ha)</span>
+                  <input id="t_luas" type="number" inputmode="decimal" min="0" step="0.01" />
+                </label>
+                <label class="agfield">
+                  <span>BJR (kg/jjg)</span>
+                  <input id="t_bjr" type="number" inputmode="decimal" min="0" step="0.01" />
+                </label>
+              </div>
+
+              <div class="agout">
+                <div class="agout-row">
+                  <div>Taksasi (kg)</div>
+                  <div id="t_kg" class="agout-val">-</div>
+                </div>
+                <div class="agout-row">
+                  <div>Taksasi (ton)</div>
+                  <div id="t_ton" class="agout-val big">-</div>
+                </div>
+              </div>
+
+              <hr class="aghr"/>
+
+              <div class="agtitle">Kebutuhan Truk</div>
+              <div class="agdesc">
+                Rumus: <b>Taksasi (ton) / Kapasitas (ton) / Ritase</b><br/>
+                Default: Kapasitas 7 ton • Ritase 2 rit/hari
+              </div>
+
+              <div class="aggrid">
+                <label class="agfield">
+                  <span>Kapasitas Truk (ton)</span>
+                  <input id="tr_cap" type="number" inputmode="decimal" min="0.1" step="0.1" />
+                </label>
+                <label class="agfield">
+                  <span>Ritase (rit/hari)</span>
+                  <input id="tr_rit" type="number" inputmode="decimal" min="0.1" step="0.1" />
+                </label>
+              </div>
+
+              <div class="agout">
+                <div class="agout-row">
+                  <div>Kebutuhan Truk (pembulatan naik)</div>
+                  <div id="tr_need" class="agout-val big">-</div>
+                </div>
+              </div>
+
+              <div class="agactions">
+                <button class="pill" id="a_save_hist" type="button">Simpan AKP+Taksasi ke History</button>
+                <button class="pill ghost" id="a_reset_defaults" type="button">Reset Default AKP/Taksasi/Truk</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- TENAGA PANEN -->
+          <section class="agpane hidden" id="agpane-tenaga">
+            <div class="agcard">
+              <div class="agtitle">Jumlah Tenaga Panen</div>
+              <div class="agdesc">
+                Standar: Bukit <b>2,65 HK/Ha</b> • Datar <b>3,33 HK/Ha</b><br/>
+                Rumus (sesuai Anda): <b>Luas Divisi / 6 / Standar</b><br/>
+                + Cadangan default <b>15%</b> (bisa diubah)
+              </div>
+
+              <div class="aggrid">
+                <label class="agfield">
+                  <span>Tipe Areal</span>
+                  <select id="p_tipe">
+                    <option value="datar">Datar (3,33)</option>
+                    <option value="bukit">Bukit (2,65)</option>
+                  </select>
+                </label>
+                <label class="agfield">
+                  <span>Luas Divisi (ha)</span>
+                  <input id="p_luas" type="number" inputmode="decimal" min="0" step="0.01" />
+                </label>
+                <label class="agfield">
+                  <span>Cadangan (%)</span>
+                  <input id="p_cad" type="number" inputmode="decimal" min="0" max="100" step="0.1" />
+                </label>
+              </div>
+
+              <div class="agout">
+                <div class="agout-row">
+                  <div>Tenaga Panen</div>
+                  <div id="p_base" class="agout-val">-</div>
+                </div>
+                <div class="agout-row">
+                  <div>Cadangan</div>
+                  <div id="p_res" class="agout-val">-</div>
+                </div>
+                <div class="agout-row">
+                  <div>Total (Panen + Cadangan)</div>
+                  <div id="p_total" class="agout-val big">-</div>
+                </div>
+              </div>
+
+              <div class="agactions">
+                <button class="pill" id="p_save_hist" type="button">Simpan ke History</button>
+                <button class="pill ghost" id="p_reset_defaults" type="button">Reset Default Tenaga</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- JARAK TANAM -->
+          <section class="agpane hidden" id="agpane-jarak">
+            <div class="agcard">
+              <div class="agtitle">Jarak Tanam (Segitiga Sama Sisi)</div>
+              <div class="agdesc">
+                Rumus: Luas/pokok = <b>10.000/SPH</b> dan Luas = <b>0,866 × s²</b><br/>
+                s = jarak tanam (pokok), jarak baris = <b>0,866 × s</b><br/>
+                Pembulatan: pokok <b>1</b> desimal, baris <b>2</b> desimal
+              </div>
+
+              <div class="aggrid">
+                <label class="agfield">
+                  <span>SPH</span>
+                  <input id="j_sph" type="number" inputmode="numeric" min="1" step="1" />
+                </label>
+              </div>
+
+              <div class="agout">
+                <div class="agout-row">
+                  <div>Jarak antar pokok (m)</div>
+                  <div id="j_pokok" class="agout-val big">-</div>
+                </div>
+                <div class="agout-row">
+                  <div>Jarak antar baris (m)</div>
+                  <div id="j_baris" class="agout-val">-</div>
+                </div>
+              </div>
+
+              <div class="agactions">
+                <button class="pill" id="j_save_hist" type="button">Simpan ke History</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- LOSSES -->
+            <section class="agpane hidden" id="agpane-losses">
+                <div class="agcard">
+                <div class="agtitle">Perhitungan Losses (CPO & Kernel)</div>
+                <div class="agdesc">
+                    Pilih dulu sumber losses: <b>Brondolan</b> atau <b>TBS/Janjang</b>.
+                    Lalu masukkan jumlah kehilangan sesuai satuannya (<b>per pokok panen / per rotasi / per Ha</b>).
+                    Nilai default bisa diubah dan disimpan, serta dapat di-reset.
+                </div>
+            
+                <!-- MODE SELECT -->
+                <div class="aggrid" style="grid-template-columns: 1fr;">
+                    <label class="agfield">
+                    <span>Hitung Losses Dari</span>
+                    <select id="l_mode">
+                        <option value="brond">Brondolan</option>
+                        <option value="tbs">TBS / Janjang</option>
+                    </select>
+                    </label>
+                </div>
+            
+                <hr class="aghr"/>
+            
+                <!-- INPUT JUMLAH KEHILANGAN + UNIT -->
+                <div class="agtitle">Input Kehilangan</div>
+                <div class="aggrid">
+                    <label class="agfield" id="l_qty_label_wrap">
+                    <span id="l_qty_label">Jumlah Brondolan Hilang</span>
+                    <input id="l_qty" type="number" inputmode="decimal" min="0" step="0.1" />
+                    </label>
+            
+                    <label class="agfield">
+                    <span>Satuan</span>
+                    <select id="l_unit">
+                        <option value="per_pokok_panen">per Pokok Panen</option>
+                        <option value="per_rotasi">per Rotasi (Total Divisi)</option>
+                        <option value="per_ha">per Ha</option>
+                    </select>
+                    </label>
+            
+                    <label class="agfield" id="l_rot_wrap">
+                    <span>Rotasi Panen (rotasi/bulan)</span>
+                    <input id="l_rot" type="number" inputmode="decimal" min="0.1" step="0.1" />
+                    </label>
+                </div>
+            
+                <hr class="aghr"/>
+            
+                <!-- PARAMETER UMUM (SELALU MUNCUL) -->
+                <div class="agtitle">Parameter Umum</div>
+                <div class="aggrid">
+                    <label class="agfield">
+                    <span>Luas Divisi (ha)</span>
+                    <input id="l_div_ha" type="number" inputmode="decimal" min="0" step="0.01" />
+                    </label>
+                    <label class="agfield">
+                    <span>SPH (pokok/ha)</span>
+                    <input id="l_sph" type="number" inputmode="numeric" min="1" step="1" />
+                    </label>
+                    <label class="agfield">
+                    <span>AKP (1 : x)</span>
+                    <input id="l_akp_ratio" type="number" inputmode="decimal" min="0.1" step="0.1" />
+                    </label>
+            
+                    <label class="agfield">
+                    <span>Harga CPO (Rp/kg)</span>
+                    <input id="l_h_cpo" type="number" inputmode="numeric" min="0" step="1" />
+                    </label>
+                    <label class="agfield">
+                    <span>Harga Kernel (Rp/kg)</span>
+                    <input id="l_h_ker" type="number" inputmode="numeric" min="0" step="1" />
+                    </label>
+                </div>
+            
+                <hr class="aghr"/>
+            
+                <!-- SECTION BRONDOLAN -->
+                <div id="l_sec_brond">
+                    <div class="agtitle">Default Brondolan</div>
+                    <div class="aggrid">
+                    <label class="agfield">
+                        <span>Berat 1 Brondolan (gram/butir)</span>
+                        <input id="l_brond_g" type="number" inputmode="decimal" min="0" step="0.1" />
+                    </label>
+                    <label class="agfield">
+                        <span>OER Brondolan (%)</span>
+                        <input id="l_oer_br" type="number" inputmode="decimal" min="0" max="100" step="0.1" />
+                    </label>
+                    <label class="agfield">
+                        <span>KER Brondolan (%)</span>
+                        <input id="l_ker_br" type="number" inputmode="decimal" min="0" max="100" step="0.1" />
+                    </label>
+                    </div>
+                </div>
+            
+                <!-- SECTION TBS/JANJANG -->
+                <div id="l_sec_tbs" class="hidden">
+                    <div class="agtitle">Default TBS / Janjang</div>
+                    <div class="aggrid">
+                    <label class="agfield">
+                        <span>BJR (kg/janjang)</span>
+                        <input id="l_bjr" type="number" inputmode="decimal" min="0" step="0.01" />
+                    </label>
+                    <label class="agfield">
+                        <span>OER TBS (%)</span>
+                        <input id="l_oer_tbs" type="number" inputmode="decimal" min="0" max="100" step="0.1" />
+                    </label>
+                    <label class="agfield">
+                        <span>KER TBS (%)</span>
+                        <input id="l_ker_tbs" type="number" inputmode="decimal" min="0" max="100" step="0.1" />
+                    </label>
+                    </div>
+            
+                    <div class="agdesc" style="margin-top:8px">
+                    Opsional: Jika Anda tahu losses TBS dalam <b>kg/rotasi</b>, isi di bawah ini. Jika diisi, ini menjadi prioritas dibanding konversi dari jumlah janjang × BJR.
+                    </div>
+            
+                    <div class="aggrid" style="grid-template-columns: 1fr;">
+                    <label class="agfield">
+                        <span>TBS Hilang per Rotasi (kg) — Optional</span>
+                        <input id="l_tbs_kg_rot" type="number" inputmode="decimal" min="0" step="0.1" />
+                    </label>
+                    </div>
+                </div>
+            
+                <hr class="aghr"/>
+            
+                <!-- OUTPUT -->
+                <div class="agout">
+                    <div class="agout-row">
+                    <div>Estimasi Janjang Panen / Rotasi (Divisi)</div>
+                    <div id="l_est_jjg_rot" class="agout-val">-</div>
+                    </div>
+                    <div class="agout-row">
+                    <div>Estimasi Janjang Panen / Bulan (Divisi)</div>
+                    <div id="l_est_jjg_mon" class="agout-val">-</div>
+                    </div>
+            
+                    <div class="agout-row">
+                    <div id="l_loss_label">Loss Brondolan (kg/bulan)</div>
+                    <div id="l_loss_qty" class="agout-val">-</div>
+                    </div>
+                </div>
+            
+                <div class="agout" style="margin-top:10px">
+                    <div class="agout-row">
+                    <div>Kerugian / Bulan (Rp)</div>
+                    <div id="l_rp_mon" class="agout-val big">-</div>
+                    </div>
+                    <div class="agout-row">
+                    <div>Kerugian / Tahun (Rp)</div>
+                    <div id="l_rp_year" class="agout-val big">-</div>
+                    </div>
+                    <div class="agout-row">
+                    <div>Rincian</div>
+                    <div id="l_rp_break" class="agout-val">-</div>
+                    </div>
+                </div>
+            
+                <div class="agactions">
+                    <button class="pill" id="l_save_hist" type="button">Simpan Losses ke History</button>
+                    <button class="pill ghost" id="l_reset_defaults" type="button">Reset Default Losses</button>
+                </div>
+                </div>
+            </section>
+  
+        </div>
+
+        <!-- CONVERT / KONVERSI PANEL -->
+        <div id="convert-box" class="convert hidden"></div>
+
+        <!-- EXPORT BOX -->
+        <div id="export-box" class="export hidden">
+          <div class="export-title">Export History</div>
+          <div class="export-actions">
+            <button class="pill" id="exp-csv" type="button">CSV</button>
+            <button class="pill" id="exp-json" type="button">JSON</button>
+            <button class="pill" id="exp-xlsx" type="button">XLSX</button>
+            <button class="pill ghost" id="exp-share" type="button">Share</button>
+          </div>
+          <div class="export-note" id="export-note">
+            Catatan: XLSX butuh SheetJS (sudah disertakan via CDN dan akan dicache setelah akses pertama online).
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      <div id="status" class="status">Offline-ready setelah akses pertama online.</div>
+      <div class="tiny">© Kalkulator PWA • LocalStorage History</div>
+    </footer>
+  </div>
+</body>
+</html>
