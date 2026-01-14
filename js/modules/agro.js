@@ -32,6 +32,26 @@ const LOSSES_DEFAULT = {
   tbsKgPerRot: 0 // optional override kg/rotasi
 };
 
+// ✅ Default Kalibrasi Semprot (disimpan di Agro Pref)
+const SEMPROT_DEFAULT = {
+  F: 0.6,    // L/menit
+  v: 30,     // m/menit
+  a: 1.2,    // m
+  sf: 25,    // %
+  dose: 1.5, // L/Ha
+  kep: 12,   // L
+  sph: 136   // pokok/ha
+};
+
+const fmtLHa = (n)=> (Number.isFinite(n) ? `${fmtNum(n,2)} L/ha` : '-');
+const fmtPct2 = (n)=> (Number.isFinite(n) ? `${fmtNum(n,2)} %` : '-');
+const fmtLml = (lit)=>{
+  if (!Number.isFinite(lit)) return '-';
+  const ml = lit * 1000;
+  return `${fmtNum(lit,3)} L (${fmtNum(ml,0)} ml)`;
+};
+
+
 const fmtRp = (n)=>{
   if (!isFinite(n)) return '-';
   return n.toLocaleString('id-ID', { style:'currency', currency:'IDR', maximumFractionDigits:0 });
@@ -198,6 +218,18 @@ export function createAgroModule({root, setHint, renderHistory}){
       setVal('l_oer_tbs', L.oerTbs);
       setVal('l_ker_tbs', L.kerTbs);
       setVal('l_tbs_kg_rot', L.tbsKgPerRot);
+
+      // ✅ semprot pref ensure + sync
+      pref.semprot = { ...structuredClone(SEMPROT_DEFAULT), ...(pref.semprot || {}) };
+      saveAgroPref(pref);
+
+      setVal('s_f',    pref.semprot.F);
+      setVal('s_v',    pref.semprot.v);
+      setVal('s_a',    pref.semprot.a);
+      setVal('s_sf',   pref.semprot.sf);
+      setVal('s_dose', pref.semprot.dose);
+      setVal('s_kep',  pref.semprot.kep);
+      setVal('s_sph',  pref.semprot.sph);
   
       updateLossesModeUI();
     }  
@@ -245,7 +277,18 @@ export function createAgroModule({root, setHint, renderHistory}){
     pref.losses.oerTbs      = numOr(getVal('l_oer_tbs'), pref.losses.oerTbs);
     pref.losses.kerTbs      = numOr(getVal('l_ker_tbs'), pref.losses.kerTbs);
     pref.losses.tbsKgPerRot = numOr(getVal('l_tbs_kg_rot'), pref.losses.tbsKgPerRot);
-    
+
+    // ===== Semprot ("" tidak jadi 0) =====
+    pref.semprot = { ...structuredClone(SEMPROT_DEFAULT), ...(pref.semprot || {}) };
+
+    pref.semprot.F    = numOr(getVal('s_f'),    pref.semprot.F);
+    pref.semprot.v    = numOr(getVal('s_v'),    pref.semprot.v);
+    pref.semprot.a    = numOr(getVal('s_a'),    pref.semprot.a);
+    pref.semprot.sf   = numOr(getVal('s_sf'),   pref.semprot.sf);
+    pref.semprot.dose = numOr(getVal('s_dose'), pref.semprot.dose);
+    pref.semprot.kep  = numOr(getVal('s_kep'),  pref.semprot.kep);
+    pref.semprot.sph  = numOr(getVal('s_sph'),  pref.semprot.sph);
+        
     saveAgroPref(pref);    
     return pref;
   }
@@ -401,6 +444,47 @@ export function createAgroModule({root, setHint, renderHistory}){
     };
   }
 
+  function calcSemprot(pref){
+    const S = { ...structuredClone(SEMPROT_DEFAULT), ...(pref.semprot||{}) };
+
+    const F = Number(S.F);
+    const v = Number(S.v);
+    const a = Number(S.a);
+    const sf = Number(S.sf) / 100;
+    const dose = Number(S.dose);
+    const kep = Number(S.kep);
+    const sph = Number(S.sph);
+
+    if (!(F>0) || !(v>0) || !(a>0) || !(kep>0) || !(sph>0) || !(sf>=0)) return { ok:false };
+
+    // Volume semprot blanket (L/ha)
+    const blanket = (F * 10000) / (v * a);
+
+    // SP2A (L/ha)
+    const sp2a = blanket * sf;
+
+    // Konsentrasi herbisida (% v/v)
+    const konsPct = (dose / blanket) * 100;
+
+    // Herbisida per kep (liter)
+    const herbPerKepL = (konsPct / 100) * kep;
+
+    // Jumlah kep per ha
+    const kepPerHa = sp2a / kep;
+
+    // Pokok per kep
+    const pokokPerKep = sph / kepPerHa;
+
+    return {
+      ok:true,
+      blanket, sp2a,
+      konsPct,
+      herbPerKepL,
+      kepPerHa,
+      pokokPerKep
+    };
+  }
+
   function recalc(){
     const pref = savePrefFromInputs();
     const k = calcKecambah(pref);
@@ -442,6 +526,20 @@ export function createAgroModule({root, setHint, renderHistory}){
      setText('l_rp_mon',  L.ok ? fmtRp(L.rpMon) : '-');
      setText('l_rp_year', L.ok ? fmtRp(L.rpYear) : '-');
      setText('l_rp_break', L.ok ? (L.rpBreak || '-') : '-');
+
+    // ✅ Semprot output
+    if (!pref.semprot){
+      pref.semprot = structuredClone(SEMPROT_DEFAULT);
+      saveAgroPref(pref);
+    }
+    const S = calcSemprot(pref);
+
+    setText('s_blanket',      S.ok ? fmtLHa(S.blanket) : '-');
+    setText('s_sp2a',         S.ok ? fmtLHa(S.sp2a) : '-');
+    setText('s_kons',         S.ok ? fmtPct2(S.konsPct) : '-');
+    setText('s_perkep',       S.ok ? fmtLml(S.herbPerKepL) : '-');
+    setText('s_kep_per_ha',   S.ok ? `${fmtNum(S.kepPerHa,2)} kep/ha` : '-');
+    setText('s_pokok_per_kep',S.ok ? `${fmtNum(S.pokokPerKep,0)} pokok/kep` : '-');
  
      // jaga UI sesuai mode
      updateLossesModeUI(); 
@@ -485,6 +583,10 @@ export function createAgroModule({root, setHint, renderHistory}){
       'l_rot','l_div_ha','l_sph','l_akp_ratio','l_h_cpo','l_h_ker',
       'l_brond_g','l_oer_br','l_ker_br',
       'l_bjr','l_oer_tbs','l_ker_tbs','l_tbs_kg_rot',
+
+      // ✅ semprot
+      's_f','s_v','s_a','s_sf','s_dose','s_kep','s_sph',
+
     ];    
     idsPersist.forEach(id=>{
       const el = document.getElementById(id);
@@ -606,6 +708,33 @@ export function createAgroModule({root, setHint, renderHistory}){
           recalc();
           setHint?.('Default losses di-reset');
         });     
+
+            // ✅ Semprot: save to history
+    $('#s_save_hist')?.addEventListener('click', ()=>{
+      const pref = loadAgroPref();
+      if (!pref.semprot) pref.semprot = structuredClone(SEMPROT_DEFAULT);
+
+      const S = calcSemprot(pref);
+      if (!S.ok) return setHint('Input kalibrasi semprot belum valid');
+
+      const p = pref.semprot;
+      const expr = `Semprot: F ${p.F} L/menit | v ${p.v} m/menit | a ${p.a} m | SF ${p.sf}% | Dosis ${p.dose} L/ha | Kep ${p.kep} L | SPH ${p.sph}`;
+      const res  = `Blanket ${fmtNum(S.blanket,2)} L/ha | SP2A ${fmtNum(S.sp2a,2)} L/ha | Kons ${fmtNum(S.konsPct,2)}% | Herb/Kep ${fmtNum(S.herbPerKepL,3)} L`;
+
+      addHistory('Agronomi', expr, res);
+      renderHistory?.();
+      setHint('Kalibrasi semprot disimpan ke history');
+    });
+
+    // ✅ Semprot: reset default
+    $('#s_reset_defaults')?.addEventListener('click', ()=>{
+      const pref = loadAgroPref();
+      pref.semprot = structuredClone(SEMPROT_DEFAULT);
+      saveAgroPref(pref);
+      syncInputsFromPref();
+      recalc();
+      setHint('Default semprot di-reset');
+    });
 
     syncInputsFromPref();
     recalc();

@@ -121,6 +121,7 @@
             <button class="agtab" data-agtab="tenaga">Tenaga Panen</button>
             <button class="agtab" data-agtab="jarak">Jarak Tanam</button>
             <button class="agtab" data-agtab="losses">Losses</button>
+            <button class="agtab" data-agtab="semprot">Kalibrasi Semprot</button>
           </div>
 
           <!-- KECAMBAH -->
@@ -512,6 +513,93 @@
                 </div>
                 </div>
             </section>
+
+            <!-- KALIBRASI SEMPROT -->
+            <section class="agpane hidden" id="agpane-semprot">
+                <div class="agcard">
+                <div class="agtitle">Kalibrasi Semprot</div>
+                <div class="agdesc">
+                    Rumus:<br/>
+                    <b>Volume Semprot (Blanket) = (F × 10.000) / (v × a)</b><br/>
+                    <b>SP2A = Blanket × Spraying Faktor</b><br/>
+                    <b>Konsentrasi Herbisida (%) = (Dosis/Blanket) × 100%</b><br/>
+                    <b>Herbisida per Kep = Konsentrasi × Kapasitas Kep</b><br/>
+                    <b>Kep per Ha = SP2A / Kapasitas Kep</b><br/>
+                    <b>Pokok per Kep = SPH / (Kep per Ha)</b>
+                </div>
+            
+                <div class="agtitle">Input Parameter</div>
+                <div class="aggrid">
+                    <label class="agfield">
+                    <span>Flowrate F (L/menit)</span>
+                    <input id="s_f" type="number" inputmode="decimal" step="0.01" min="0" />
+                    </label>
+            
+                    <label class="agfield">
+                    <span>Kecepatan v (m/menit)</span>
+                    <input id="s_v" type="number" inputmode="decimal" step="0.1" min="0" />
+                    </label>
+            
+                    <label class="agfield">
+                    <span>Lebar swat a (m)</span>
+                    <input id="s_a" type="number" inputmode="decimal" step="0.01" min="0" />
+                    </label>
+            
+                    <label class="agfield">
+                    <span>Spraying Faktor (%)</span>
+                    <input id="s_sf" type="number" inputmode="decimal" step="0.1" min="0" max="100" />
+                    </label>
+            
+                    <label class="agfield">
+                    <span>Dosis Herbisida (L/Ha)</span>
+                    <input id="s_dose" type="number" inputmode="decimal" step="0.01" min="0" />
+                    </label>
+            
+                    <label class="agfield">
+                    <span>Kapasitas Kep (L)</span>
+                    <input id="s_kep" type="number" inputmode="decimal" step="0.1" min="0" />
+                    </label>
+            
+                    <label class="agfield">
+                    <span>SPH (pokok/ha)</span>
+                    <input id="s_sph" type="number" inputmode="numeric" step="1" min="1" />
+                    </label>
+                </div>
+            
+                <div class="agout">
+                    <div class="agout-row">
+                    <div>Volume Semprot (Blanket)</div>
+                    <div id="s_blanket" class="agout-val big">-</div>
+                    </div>
+                    <div class="agout-row">
+                    <div>Volume Semprot SP2A</div>
+                    <div id="s_sp2a" class="agout-val big">-</div>
+                    </div>
+                    <div class="agout-row">
+                    <div>Konsentrasi Herbisida</div>
+                    <div id="s_kons" class="agout-val">-</div>
+                    </div>
+                    <div class="agout-row">
+                    <div>Herbisida per Kep</div>
+                    <div id="s_perkep" class="agout-val">-</div>
+                    </div>
+                    <div class="agout-row">
+                    <div>Jumlah Kep per Ha</div>
+                    <div id="s_kep_per_ha" class="agout-val">-</div>
+                    </div>
+                    <div class="agout-row">
+                    <div>Jumlah Pokok per Kep</div>
+                    <div id="s_pokok_per_kep" class="agout-val">-</div>
+                    </div>
+                </div>
+            
+                <div class="agactions">
+                    <button class="pill" id="s_save_hist" type="button">Simpan ke History</button>
+                    <button class="pill ghost" id="s_reset_defaults" type="button">Reset Default Semprot</button>
+                </div>
+                </div>
+            </section>
+  
   
         </div>
 
