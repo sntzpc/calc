@@ -200,6 +200,11 @@
   .bottom-actions{
     display:flex;
     gap: 10px;
+    background: linear-gradient(135deg, rgba(255,255,255,.09), rgba(255,255,255,.05));
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 10px;
   }
   .action{
     flex:1;
@@ -311,6 +316,27 @@
     .main{ flex-direction:column; }
     .panel{ width: 100%; }
     .result{ font-size: 32px; }
+  }
+
+  /* bottom-actions: 3+2 baris di layar sempit */
+  @media (max-width: 600px){
+    .bottom-actions{ flex-wrap: wrap; }
+    .bottom-actions .action{ flex: 1 1 calc(33.33% - 7px); }
+  }
+
+  /* Scientific mode: calc bisa di-scroll saat sci-pad muncul di layar kecil */
+  @media (max-width: 900px){
+    .calc:has(#sci-pad:not(.hidden)){
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      /* sembunyikan scrollbar tapi tetap bisa scroll */
+      scrollbar-width: none;
+    }
+    .calc:has(#sci-pad:not(.hidden))::-webkit-scrollbar{ display: none; }
+    /* mainpad tidak shrink agar tombol tidak mengecil */
+    .calc:has(#sci-pad:not(.hidden)) .pad.mainpad{
+      flex: none;
+    }
   }
   
   @media (max-height: 720px){
@@ -575,3 +601,57 @@ body.convert-full .agro-tabs{
   -webkit-overflow-scrolling: touch;
 }
 body.convert-full .agro-tabs::-webkit-scrollbar{ display:none; }
+
+/* =========================================================
+   ✅ FULLSCREEN HISTORY/EXPORT OVERLAY (MOBILE ONLY)
+   - Saat History/Export dibuka di mobile: tutup kalkulator
+   - Panel jadi fullscreen overlay
+   - History list bisa scroll
+   ========================================================= */
+@media (max-width: 900px) {
+  body.history-full { overflow: hidden; }
+
+  body.history-full .calc { display: none !important; }
+
+  body.history-full .panel {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    z-index: 9999 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+    border: 0 !important;
+  }
+
+  body.history-full .panel-head {
+    flex-shrink: 0;
+    padding: calc(12px + env(safe-area-inset-top)) 12px 10px;
+    background: rgba(10, 14, 34, .82);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,.14);
+  }
+
+  body.history-full #history-list {
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 12px 8px 12px;
+  }
+
+  body.history-full #export-box {
+    flex-shrink: 0;
+    padding: 0 12px calc(12px + env(safe-area-inset-bottom)) 12px;
+  }
+
+  body.history-full #agro-box,
+  body.history-full #convert-box {
+    display: none !important;
+  }
+}

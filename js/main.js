@@ -164,9 +164,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   function openPanel(mode){
     panelUI.open();
 
-    // reset state overlay agronomi
+    // reset semua state overlay
     document.body.classList.remove('agro-full');
     document.body.classList.remove('convert-full');
+    document.body.classList.remove('history-full');
 
     exportBox.classList.add('hidden');
     agroBox.classList.add('hidden');
@@ -175,10 +176,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (mode==='history'){
       panelUI.setTitle('History');
       panelUI.renderHistory();
+      document.body.classList.add('history-full');
 
     } else if (mode==='export'){
       panelUI.setTitle('Export');
       panelUI.renderHistory();
+      document.body.classList.add('history-full');
 
       agroBox.classList.add('hidden');
       exportBox.classList.remove('hidden');
@@ -246,6 +249,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   btnClosePanel.addEventListener('click', () => { panelUI.close();
     document.body.classList.remove('agro-full');
     document.body.classList.remove('convert-full');
+    document.body.classList.remove('history-full');
   });
 
   // Reset all
