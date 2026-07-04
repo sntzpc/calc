@@ -3,7 +3,7 @@ import { addHistory } from '../core/storage.js';
 import { toNum } from '../core/utils.js';
 import { fmtInt } from '../core/format.js';
 
-const LS_CONVERT = 'kalkulator_convert_pref_v1';
+const LS_CONVERT = 'kalkulator_convert_pref_v2';
 
 /* =========================================================
    ✅ Database kandungan hara (% -> fraksi)
@@ -63,16 +63,16 @@ const DEFAULT_PREF = {
   fert: {
     mode: 'nutrient_swap',   // 'nutrient_swap'
     doseKgPerPokok: 1,       // input utama kg/pokok
-    basis: 'N',              // hara acuan (default N)
+    basis: 'auto',           // otomatis: kadar hara tertinggi pada pupuk B
 
     // Source/Target type: single / npk preset / custom npk
-    srcType: 'single',       // 'single' | 'npk_preset' | 'npk_custom'
-    srcId: 'UREA',           // single id or preset key
-    srcNPK: { N:15, P:15, K:6, Mg:4 }, // custom %
+    srcType: 'npk_preset',   // 'single' | 'npk_preset' | 'npk_custom'
+    srcId: 'NPK121217_2',    // single id or preset key
+    srcNPK: { N:12, P:12, K:17, Mg:2 }, // custom %
 
-    dstType: 'single',
-    dstId: 'ZA',
-    dstNPK: { N:12, P:12, K:17, Mg:2 },
+    dstType: 'npk_preset',
+    dstId: 'NPK15156_4',
+    dstNPK: { N:15, P:15, K:6, Mg:4 },
 
     // Top-up fertilizer choice for deficits
     topN: 'UREA',
@@ -220,8 +220,19 @@ function fmtKgSmart(x){
   return isInt ? `${fmtInt(x)} kg` : `${x.toLocaleString('id-ID', {maximumFractionDigits:4})} kg`;
 }
 
+function fmtDoseSmart(x){
+  if (!isFinite(x)) return '-';
+  if (Math.abs(x) < 1) {
+    return `${(x * 1000).toLocaleString('id-ID', {maximumFractionDigits:2})} gram`;
+  }
+  return fmtKgSmart(x);
+}
+
 function fmtNutrKg(x){
   if (!isFinite(x)) return '-';
+  if (Math.abs(x) < 1) {
+    return `${(x * 1000).toLocaleString('id-ID', {maximumFractionDigits:2})} gram`;
+  }
   return `${x.toLocaleString('id-ID', {maximumFractionDigits:4})} kg`;
 }
 
@@ -306,7 +317,7 @@ export function createConvertModule({ root, setHint, renderHistory }){
           <div class="agtitle">Konversi Pupuk Berdasarkan Kandungan</div>
           <div class="agdesc">
             Input: <b>Dosis Pupuk A (kg/pokok)</b> di kolom "Nilai".<br/>
-            Pilih Pupuk A & Pupuk B. Tentukan <b>Hara Acuan</b> (default N).<br/>
+            Pilih Pupuk A & Pupuk B. Hara acuan dapat dipilih otomatis berdasarkan kadar tertinggi Pupuk B atau ditentukan manual.<br/>
             Hasil: dosis pupuk B setara hara acuan + rekomendasi <b>tambahan pupuk tunggal</b> untuk menutup kekurangan hara lainnya.
           </div>
 
@@ -374,7 +385,7 @@ export function createConvertModule({ root, setHint, renderHistory }){
             <label class="agfield">
               <span>Hara Acuan</span>
               <select id="f_basis">
-                ${optionHTML({N:'N',P:'P',K:'K',Mg:'Mg',Ca:'Ca'}, pref.fert.basis || 'N')}
+                ${optionHTML({auto:'Otomatis (kadar tertinggi Pupuk B)',N:'N',P:'P₂O₅',K:'K₂O',Mg:'MgO',Ca:'Ca'}, pref.fert.basis || 'auto')}
               </select>
             </label>
 
@@ -429,6 +440,8 @@ export function createConvertModule({ root, setHint, renderHistory }){
 
       srcTypeEl.addEventListener('change', () => {
         pref.fert.srcType = srcTypeEl.value;
+        if (pref.fert.srcType === 'single') pref.fert.srcId = $c('#f_src_id').value;
+        if (pref.fert.srcType === 'npk_preset') pref.fert.srcId = $c('#f_src_npk_preset').value;
         persist();
         syncTypeVisibility();
         recalc();
@@ -436,6 +449,8 @@ export function createConvertModule({ root, setHint, renderHistory }){
 
       dstTypeEl.addEventListener('change', () => {
         pref.fert.dstType = dstTypeEl.value;
+        if (pref.fert.dstType === 'single') pref.fert.dstId = $c('#f_dst_id').value;
+        if (pref.fert.dstType === 'npk_preset') pref.fert.dstId = $c('#f_dst_npk_preset').value;
         persist();
         syncTypeVisibility();
         recalc();
@@ -533,14 +548,25 @@ export function createConvertModule({ root, setHint, renderHistory }){
     const doseA = toNum(elValue.value, 0);
     pref.fert.doseKgPerPokok = doseA;
 
-    const basis = pref.fert.basis || 'N';
-
     const specA = getSpec(pref.fert.srcType, pref.fert.srcId, pref.fert.srcNPK);
     const specB = getSpec(pref.fert.dstType, pref.fert.dstId, pref.fert.dstNPK);
 
     const resBox = $c('#f_result');
     if (!specA || !specB || !(doseA > 0)){
       resBox.innerHTML = `<div class="agout-row"><div>Ringkasan</div><div class="agout-val">Input belum valid</div></div>`;
+      return { ok:false, label:'', outText:'' };
+    }
+
+    const requestedBasis = pref.fert.basis || 'auto';
+    const basis = requestedBasis === 'auto'
+      ? NUTS.reduce((best, n) => {
+          if (!(specA[n] > 0) || !(specB[n] > 0)) return best;
+          return !best || specB[n] > specB[best] ? n : best;
+        }, null)
+      : requestedBasis;
+
+    if (!basis){
+      resBox.innerHTML = `<div class="agout-row"><div>Ringkasan</div><div class="agout-val">Tidak ada hara yang sama pada pupuk A dan B</div></div>`;
       return { ok:false, label:'', outText:'' };
     }
 
@@ -639,20 +665,21 @@ export function createConvertModule({ root, setHint, renderHistory }){
     }
 
     // Build result HTML
+    const nutrientLabel = { N:'N', P:'P₂O₅', K:'K₂O', Mg:'MgO', Ca:'Ca' };
     const rows = NUTS.map(n => `
       <div class="agout-row">
-        <div>${n}</div>
-        <div class="agout-val">${fmtNutrKg(nutA[n])} → ${fmtNutrKg(nutB[n])} (def ${fmtNutrKg(Math.max(0, nutA[n]-nutB[n]))})</div>
+        <div>${nutrientLabel[n]}</div>
+        <div class="agout-val">target ${fmtNutrKg(nutA[n])} · dari B ${fmtNutrKg(nutB[n])} · kurang ${fmtNutrKg(Math.max(0, nutA[n]-nutB[n]))} · surplus ${fmtNutrKg(Math.max(0, nutB[n]-nutA[n]))}</div>
       </div>
     `).join('');
 
     const topLines = [];
-    if (doloDose > 0) topLines.push(`• Dolomite: <b>${fmtKgSmart(doloDose)}</b>`);
-    if (topDose.N > 0) topLines.push(`• ${FERT_SINGLE[topChoice.N]?.name || topChoice.N}: <b>${fmtKgSmart(topDose.N)}</b>`);
-    if (topDose.P > 0) topLines.push(`• ${FERT_SINGLE[topChoice.P]?.name || topChoice.P}: <b>${fmtKgSmart(topDose.P)}</b>`);
-    if (topDose.K > 0) topLines.push(`• ${FERT_SINGLE[topChoice.K]?.name || topChoice.K}: <b>${fmtKgSmart(topDose.K)}</b>`);
-    if (topDose.Mg > 0) topLines.push(`• ${FERT_SINGLE[topChoice.Mg]?.name || topChoice.Mg}: <b>${fmtKgSmart(topDose.Mg)}</b>`);
-    if (topDose.Ca > 0) topLines.push(`• ${FERT_SINGLE[topChoice.Ca]?.name || topChoice.Ca}: <b>${fmtKgSmart(topDose.Ca)}</b>`);
+    if (doloDose > 0) topLines.push(`• Dolomite: <b>${fmtDoseSmart(doloDose)}</b>`);
+    if (topDose.N > 0) topLines.push(`• ${FERT_SINGLE[topChoice.N]?.name || topChoice.N}: <b>${fmtDoseSmart(topDose.N)}</b>`);
+    if (topDose.P > 0) topLines.push(`• ${FERT_SINGLE[topChoice.P]?.name || topChoice.P}: <b>${fmtDoseSmart(topDose.P)}</b>`);
+    if (topDose.K > 0) topLines.push(`• ${FERT_SINGLE[topChoice.K]?.name || topChoice.K}: <b>${fmtDoseSmart(topDose.K)}</b>`);
+    if (topDose.Mg > 0) topLines.push(`• ${FERT_SINGLE[topChoice.Mg]?.name || topChoice.Mg}: <b>${fmtDoseSmart(topDose.Mg)}</b>`);
+    if (topDose.Ca > 0) topLines.push(`• ${FERT_SINGLE[topChoice.Ca]?.name || topChoice.Ca}: <b>${fmtDoseSmart(topDose.Ca)}</b>`);
 
     const topHtml = topLines.length
       ? `<div class="agdesc" style="margin-top:8px">${topLines.join('<br/>')}</div>`
@@ -661,11 +688,11 @@ export function createConvertModule({ root, setHint, renderHistory }){
     resBox.innerHTML = `
       <div class="agout-row">
         <div>Konversi</div>
-        <div class="agout-val big">${fmtKgSmart(doseA)} → ${fmtKgSmart(doseB)}</div>
+        <div class="agout-val big">${fmtDoseSmart(doseA)} → ${fmtDoseSmart(doseB)}</div>
       </div>
       <div class="agout-row">
         <div>Hara acuan</div>
-        <div class="agout-val">${basis}</div>
+        <div class="agout-val">${nutrientLabel[basis]}${requestedBasis === 'auto' ? ' (otomatis)' : ''}</div>
       </div>
       ${rows}
       <div class="agout-row">
@@ -731,7 +758,7 @@ export function createConvertModule({ root, setHint, renderHistory }){
       const rr = recalcFertAdvanced();
       // output utama di elOut: tampilkan dosis B saja (ringkas)
       if (rr.ok){
-        elOut.textContent = rr.doseB ? `${rr.doseB.toLocaleString('id-ID',{maximumFractionDigits:4})} kg` : '-';
+        elOut.textContent = rr.doseB ? fmtDoseSmart(rr.doseB) : '-';
         label = rr.label;
         containerRef.dataset.lastConvLabel = label;
         containerRef.dataset.lastConvOut = rr.outText;

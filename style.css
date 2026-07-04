@@ -469,12 +469,14 @@ body.agro-full { overflow: hidden; }
 /* sembunyikan area kalkulator utama saat agronomi aktif */
 body.agro-full .calc { display: none !important; }
 
-/* panel jadi fullscreen overlay */
+/* panel memenuhi area utama tanpa menutupi banner aplikasi */
 body.agro-full .panel{
-  position: fixed !important;
-  inset: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
+  position: static !important;
+  inset: auto !important;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
   max-width: none !important;
 
   border-radius: 0 !important;
@@ -495,6 +497,7 @@ body.agro-full .panel-head{
   position: sticky;
   top: 0;
   z-index: 5;
+  flex-shrink: 0;
 
   padding: calc(12px + env(safe-area-inset-top)) 12px 10px;
   background: rgba(10, 14, 34, .82);
@@ -525,9 +528,22 @@ body.agro-full .agro-tabs{
   position: sticky;
   top: 0;
   z-index: 4;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
   padding: 10px 0 8px;
   background: rgba(0,0,0,.10);
   backdrop-filter: blur(6px);
+}
+
+body.agro-full .agro-tabs .agtab{
+  flex: 0 0 auto;
+  white-space: nowrap;
+  scroll-snap-align: start;
 }
 
 /* =========================================================
@@ -542,12 +558,14 @@ body.agro-full .agro-tabs{
    /* sembunyikan area kalkulator utama saat konversi aktif */
    body.convert-full .calc { display: none !important; }
    
-   /* panel jadi fullscreen overlay (reuse same style) */
+   /* panel memenuhi area utama tanpa menutupi banner aplikasi */
    body.convert-full .panel{
-     position: fixed !important;
-     inset: 0 !important;
-     width: 100vw !important;
-     height: 100vh !important;
+     position: static !important;
+     inset: auto !important;
+     flex: 1 1 auto !important;
+     width: 100% !important;
+     height: auto !important;
+     min-height: 0 !important;
      max-width: none !important;
      border-radius: 0 !important;
      padding: 0 !important;
@@ -564,6 +582,7 @@ body.agro-full .agro-tabs{
      position: sticky;
      top: 0;
      z-index: 5;
+     flex-shrink: 0;
      padding: calc(12px + env(safe-area-inset-top)) 12px 10px;
      background: rgba(10, 14, 34, .82);
      backdrop-filter: blur(10px);
@@ -595,12 +614,22 @@ body.agro-full .agro-tabs{
   .cgrid-2, .cgrid-3{ grid-template-columns: 1fr; }
 }
 
-/* opsional: tab konversi bisa geser kiri-kanan jika kepanjangan */
+/* tab konversi tetap satu baris dan bisa digeser kiri-kanan */
 body.convert-full .agro-tabs{
+  flex-wrap: nowrap;
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
 }
-body.convert-full .agro-tabs::-webkit-scrollbar{ display:none; }
+
+body.convert-full .agro-tabs .agtab{
+  flex: 0 0 auto;
+  white-space: nowrap;
+  scroll-snap-align: start;
+}
 
 /* =========================================================
    ✅ FULLSCREEN HISTORY/EXPORT OVERLAY (MOBILE ONLY)
@@ -614,10 +643,12 @@ body.convert-full .agro-tabs::-webkit-scrollbar{ display:none; }
   body.history-full .calc { display: none !important; }
 
   body.history-full .panel {
-    position: fixed !important;
-    inset: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
+    position: static !important;
+    inset: auto !important;
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
     max-width: none !important;
     border-radius: 0 !important;
     padding: 0 !important;
