@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kalkulator_pwa_v8_fertilizer_conversion';
+const CACHE_NAME = 'kalkulator_pwa_v9_fertilizer_conversion';
 const ASSETS = [
   './',
   './index.html',
